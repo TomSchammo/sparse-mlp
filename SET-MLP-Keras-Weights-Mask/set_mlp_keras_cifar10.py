@@ -248,7 +248,8 @@ class SET_MLP_CIFAR10:
         self.accuracies_per_epoch = []
         for epoch in range(0, self.maxepoches):
 
-            sgd = optimizers.SGD(lr=self.learning_rate, momentum=self.momentum)
+            sgd = optimizers.SGD(learning_rate=self.learning_rate,
+                                 momentum=self.momentum)
             self.model.compile(loss='categorical_crossentropy',
                                optimizer=sgd,
                                metrics=['accuracy'])

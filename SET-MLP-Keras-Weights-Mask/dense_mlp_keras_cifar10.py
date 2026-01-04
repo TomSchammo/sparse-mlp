@@ -134,7 +134,8 @@ class MLP_CIFAR10:
 
         self.model.summary()
 
-        sgd = optimizers.SGD(lr=self.learning_rate, momentum=self.momentum)
+        sgd = optimizers.SGD(learning_rate=self.learning_rate,
+                             momentum=self.momentum)
         self.model.compile(loss='categorical_crossentropy',
                            optimizer=sgd,
                            metrics=['accuracy'])
