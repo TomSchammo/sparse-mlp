@@ -60,6 +60,7 @@ class Constraint(object):
     def get_config(self):
         return {}
 
+
 class MaskWeights(Constraint):
 
     def __init__(self, mask):
@@ -84,32 +85,36 @@ def find_last_pos(array, value):
     return array.shape[0] - idx
 
 
-def createWeightsMask(epsilon,noRows, noCols):
+def createWeightsMask(epsilon, noRows, noCols):
     # generate an Erdos Renyi sparse weights mask
     mask_weights = np.random.rand(noRows, noCols)
-    prob = 1 - (epsilon * (noRows + noCols)) / (noRows * noCols)  # normal tp have 8x connections
+    prob = 1 - (epsilon * (noRows + noCols)) / (
+        noRows * noCols)  # normal tp have 8x connections
     mask_weights[mask_weights < prob] = 0
     mask_weights[mask_weights >= prob] = 1
     noParameters = np.sum(mask_weights)
-    print ("Create Sparse Matrix: No parameters, NoRows, NoCols ",noParameters,noRows,noCols)
-    return [noParameters,mask_weights]
+    print("Create Sparse Matrix: No parameters, NoRows, NoCols ", noParameters,
+          noRows, noCols)
+    return [noParameters, mask_weights]
 
 
 class SET_MLP_CIFAR10:
+
     def __init__(self):
         # set model parameters
-        self.epsilon = 20 # control the sparsity level as discussed in the paper
-        self.zeta = 0.3 # the fraction of the weights removed
-        self.batch_size = 100 # batch size
-        self.maxepoches = 1000 # number of epochs
-        self.learning_rate = 0.01 # SGD learning rate
-        self.num_classes = 10 # number of classes
-        self.momentum=0.9 # SGD momentum
+        self.epsilon = 20  # control the sparsity level as discussed in the paper
+        self.zeta = 0.3  # the fraction of the weights removed
+        self.batch_size = 100  # batch size
+        self.maxepoches = 1000  # number of epochs
+        self.learning_rate = 0.01  # SGD learning rate
+        self.num_classes = 10  # number of classes
+        self.momentum = 0.9  # SGD momentum
 
         # generate an Erdos Renyi sparse weights mask for each layer
-        [self.noPar1, self.wm1] = createWeightsMask(self.epsilon,32 * 32 *3, 4000)
-        [self.noPar2, self.wm2] = createWeightsMask(self.epsilon,4000, 1000)
-        [self.noPar3, self.wm3] = createWeightsMask(self.epsilon,1000, 4000)
+        [self.noPar1, self.wm1] = createWeightsMask(self.epsilon, 32 * 32 * 3,
+                                                    4000)
+        [self.noPar2, self.wm2] = createWeightsMask(self.epsilon, 4000, 1000)
+        [self.noPar3, self.wm3] = createWeightsMask(self.epsilon, 1000, 4000)
 
         # initialize layers weights
         self.w1 = None
@@ -128,7 +133,6 @@ class SET_MLP_CIFAR10:
         # train the SET-MLP model
         self.train()
 
-
     def create_model(self):
 
         # create a SET-MLP model for CIFAR10 with 3 hidden layers
@@ -146,19 +150,38 @@ class SET_MLP_CIFAR10:
         self.model.add(Dense(self.num_classes, name="dense_4",weights=self.w4)) #please note that there is no need for a sparse output layer as the number of classes is much smaller than the number of input hidden neurons
         self.model.add(Activation('softmax'))
 
-    def rewireMask(self,weights, noWeights):
+        # If we already have weights from a previous training phase, reapply them
+        self._restore_previous_weights()
+
+    def _restore_previous_weights(self):
+        # helper to load previously stored weights into freshly built layers
+        def maybe_set(name, weights):
+            if weights is not None:
+                self.model.get_layer(name).set_weights(weights)
+
+        maybe_set("sparse_1", self.w1)
+        maybe_set("srelu1", self.wSRelu1)
+        maybe_set("sparse_2", self.w2)
+        maybe_set("srelu2", self.wSRelu2)
+        maybe_set("sparse_3", self.w3)
+        maybe_set("srelu3", self.wSRelu3)
+        maybe_set("dense_4", self.w4)
+
+    def rewireMask(self, weights, noWeights):
         # rewire weight matrix
 
         # remove zeta largest negative and smallest positive weights
         values = np.sort(weights.ravel())
         firstZeroPos = find_first_pos(values, 0)
         lastZeroPos = find_last_pos(values, 0)
-        largestNegative = values[int((1-self.zeta) * firstZeroPos)]
-        smallestPositive = values[int(min(values.shape[0] - 1, lastZeroPos +self.zeta * (values.shape[0] - lastZeroPos)))]
-        rewiredWeights = weights.copy();
-        rewiredWeights[rewiredWeights > smallestPositive] = 1;
-        rewiredWeights[rewiredWeights < largestNegative] = 1;
-        rewiredWeights[rewiredWeights != 1] = 0;
+        largestNegative = values[int((1 - self.zeta) * firstZeroPos)]
+        smallestPositive = values[int(
+            min(values.shape[0] - 1,
+                lastZeroPos + self.zeta * (values.shape[0] - lastZeroPos)))]
+        rewiredWeights = weights.copy()
+        rewiredWeights[rewiredWeights > smallestPositive] = 1
+        rewiredWeights[rewiredWeights < largestNegative] = 1
+        rewiredWeights[rewiredWeights != 1] = 0
         weightMaskCore = rewiredWeights.copy()
 
         # add zeta random weights
@@ -195,18 +218,22 @@ class SET_MLP_CIFAR10:
     def train(self):
 
         # read CIFAR10 data
-        [x_train,x_test,y_train,y_test]=self.read_data()
+        [x_train, x_test, y_train, y_test] = self.read_data()
 
         #data augmentation
         datagen = ImageDataGenerator(
             featurewise_center=False,  # set input mean to 0 over the dataset
             samplewise_center=False,  # set each sample mean to 0
-            featurewise_std_normalization=False,  # divide inputs by std of the dataset
+            featurewise_std_normalization=
+            False,  # divide inputs by std of the dataset
             samplewise_std_normalization=False,  # divide each input by its std
             zca_whitening=False,  # apply ZCA whitening
-            rotation_range=10,  # randomly rotate images in the range (degrees, 0 to 180)
-            width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
-            height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
+            rotation_range=
+            10,  # randomly rotate images in the range (degrees, 0 to 180)
+            width_shift_range=
+            0.1,  # randomly shift images horizontally (fraction of total width)
+            height_shift_range=
+            0.1,  # randomly shift images vertically (fraction of total height)
             horizontal_flip=True,  # randomly flip images
             vertical_flip=False)  # randomly flip images
         datagen.fit(x_train)
@@ -214,18 +241,20 @@ class SET_MLP_CIFAR10:
         self.model.summary()
 
         # training process in a for loop
-        self.accuracies_per_epoch=[]
-        for epoch in range(0,self.maxepoches):
+        self.accuracies_per_epoch = []
+        for epoch in range(0, self.maxepoches):
 
             sgd = optimizers.SGD(lr=self.learning_rate, momentum=self.momentum)
-            self.model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
+            self.model.compile(loss='categorical_crossentropy',
+                               optimizer=sgd,
+                               metrics=['accuracy'])
 
-            historytemp = self.model.fit_generator(datagen.flow(x_train, y_train,
-                                             batch_size=self.batch_size),
-                                steps_per_epoch=x_train.shape[0]//self.batch_size,
-                                epochs=epoch,
-                                validation_data=(x_test, y_test),
-                                 initial_epoch=epoch-1)
+            historytemp = self.model.fit_generator(
+                datagen.flow(x_train, y_train, batch_size=self.batch_size),
+                steps_per_epoch=x_train.shape[0] // self.batch_size,
+                epochs=epoch,
+                validation_data=(x_test, y_test),
+                initial_epoch=epoch - 1)
 
             self.accuracies_per_epoch.append(historytemp.history['val_acc'][0])
 
@@ -234,14 +263,14 @@ class SET_MLP_CIFAR10:
             K.clear_session()
             self.create_model()
 
-        self.accuracies_per_epoch=np.asarray(self.accuracies_per_epoch)
+        self.accuracies_per_epoch = np.asarray(self.accuracies_per_epoch)
 
     def read_data(self):
 
         #read CIFAR10 data
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-        y_train = np_utils.to_categorical(y_train, self.num_classes)
-        y_test = np_utils.to_categorical(y_test, self.num_classes)
+        y_train = to_categorical(y_train, self.num_classes)
+        y_test = to_categorical(y_test, self.num_classes)
         x_train = x_train.astype('float32')
         x_test = x_test.astype('float32')
 
@@ -253,15 +282,13 @@ class SET_MLP_CIFAR10:
 
         return [x_train, x_test, y_train, y_test]
 
+
 if __name__ == '__main__':
 
     # create and run a SET-MLP model on CIFAR10
-    model=SET_MLP_CIFAR10()
+    model = SET_MLP_CIFAR10()
 
     # save accuracies over for all training epochs
     # in "results" folder you can find the output of running this file
-    np.savetxt("results/set_mlp_srelu_sgd_cifar10_acc.txt", np.asarray(model.accuracies_per_epoch))
-
-
-
-
+    np.savetxt("results/set_mlp_srelu_sgd_cifar10_acc.txt",
+               np.asarray(model.accuracies_per_epoch))

@@ -49,14 +49,15 @@ from keras.utils import to_categorical
 
 
 class MLP_CIFAR10:
+
     def __init__(self):
         # set model parameters
-        self.epsilon = 20 # control the sparsity level as discussed in the paper
-        self.batch_size = 100 # batch size
-        self.maxepoches = 1000 # number of epochs
-        self.learning_rate = 0.01 # SGD learning rate
-        self.num_classes = 10 # number of classes
-        self.momentum=0.9 # SGD momentum
+        self.epsilon = 20  # control the sparsity level as discussed in the paper
+        self.batch_size = 100  # batch size
+        self.maxepoches = 1000  # number of epochs
+        self.learning_rate = 0.01  # SGD learning rate
+        self.num_classes = 10  # number of classes
+        self.momentum = 0.9  # SGD momentum
 
         # initialize layers weights
         self.w1 = None
@@ -75,7 +76,6 @@ class MLP_CIFAR10:
         # train the MLP-FixProb model
         self.train()
 
-
     def create_model(self):
 
         # create a dense MLP model for CIFAR10 with 3 hidden layers
@@ -90,24 +90,29 @@ class MLP_CIFAR10:
         self.model.add(Dense(4000, name="dense_3", weights=self.w3))
         self.model.add(SReLU(name="srelu3", weights=self.wSRelu3))
         self.model.add(Dropout(0.3))
-        self.model.add(Dense(self.num_classes, name="dense_4", weights=self.w4))
+        self.model.add(Dense(self.num_classes, name="dense_4",
+                             weights=self.w4))
         self.model.add(Activation('softmax'))
 
     def train(self):
 
         # read CIFAR10 data
-        [x_train,x_test,y_train,y_test]=self.read_data()
+        [x_train, x_test, y_train, y_test] = self.read_data()
 
         #data augmentation
         datagen = ImageDataGenerator(
             featurewise_center=False,  # set input mean to 0 over the dataset
             samplewise_center=False,  # set each sample mean to 0
-            featurewise_std_normalization=False,  # divide inputs by std of the dataset
+            featurewise_std_normalization=
+            False,  # divide inputs by std of the dataset
             samplewise_std_normalization=False,  # divide each input by its std
             zca_whitening=False,  # apply ZCA whitening
-            rotation_range=10,  # randomly rotate images in the range (degrees, 0 to 180)
-            width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
-            height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
+            rotation_range=
+            10,  # randomly rotate images in the range (degrees, 0 to 180)
+            width_shift_range=
+            0.1,  # randomly shift images horizontally (fraction of total width)
+            height_shift_range=
+            0.1,  # randomly shift images vertically (fraction of total height)
             horizontal_flip=True,  # randomly flip images
             vertical_flip=False)  # randomly flip images
         datagen.fit(x_train)
@@ -145,15 +150,13 @@ class MLP_CIFAR10:
 
         return [x_train, x_test, y_train, y_test]
 
+
 if __name__ == '__main__':
 
     # create and run a dense MLP model on CIFAR10
-    model=MLP_CIFAR10()
+    model = MLP_CIFAR10()
 
     # save accuracies over for all training epochs
     # in "results" folder you can find the output of running this file
-    np.savetxt("results/dense_mlp_srelu_sgd_cifar10_acc.txt", np.asarray(model.accuracies_per_epoch))
-
-
-
-
+    np.savetxt("results/dense_mlp_srelu_sgd_cifar10_acc.txt",
+               np.asarray(model.accuracies_per_epoch))
