@@ -140,7 +140,7 @@ class MLP_CIFAR10:
                            optimizer=sgd,
                            metrics=['accuracy'])
 
-        historytemp = self.model.fit_generator(
+        historytemp = self.model.fit(
             datagen.flow(x_train, y_train, batch_size=self.batch_size),
             steps_per_epoch=x_train.shape[0] // self.batch_size,
             epochs=self.maxepoches,
