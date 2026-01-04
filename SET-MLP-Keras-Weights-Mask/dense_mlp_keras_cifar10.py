@@ -37,16 +37,15 @@
 
 from __future__ import division
 from __future__ import print_function
-from keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras import optimizers
 import numpy as np
-from keras import backend as K
 #Please note that in newer versions of keras_contrib you may encounter some import errors. You can find a fix for it on the Internet, or as an alternative you can try other activations functions.
-from keras_contrib.layers.advanced_activations import SReLU
+from srelu import SReLU
 from keras.datasets import cifar10
-from keras.utils import np_utils
+from keras.utils import to_categorical
 
 
 class MLP_CIFAR10:
@@ -116,24 +115,25 @@ class MLP_CIFAR10:
         self.model.summary()
 
         sgd = optimizers.SGD(lr=self.learning_rate, momentum=self.momentum)
-        self.model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
+        self.model.compile(loss='categorical_crossentropy',
+                           optimizer=sgd,
+                           metrics=['accuracy'])
 
-        historytemp = self.model.fit_generator(datagen.flow(x_train, y_train,
-                                                            batch_size=self.batch_size),
-                                               steps_per_epoch=x_train.shape[0] // self.batch_size,
-                                               epochs=self.maxepoches,
-                                               validation_data=(x_test, y_test),
-                                               )
+        historytemp = self.model.fit_generator(
+            datagen.flow(x_train, y_train, batch_size=self.batch_size),
+            steps_per_epoch=x_train.shape[0] // self.batch_size,
+            epochs=self.maxepoches,
+            validation_data=(x_test, y_test),
+        )
 
         self.accuracies_per_epoch = historytemp.history['val_acc']
-
 
     def read_data(self):
 
         #read CIFAR10 data
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-        y_train = np_utils.to_categorical(y_train, self.num_classes)
-        y_test = np_utils.to_categorical(y_test, self.num_classes)
+        y_train = to_categorical(y_train, self.num_classes)
+        y_test = to_categorical(y_test, self.num_classes)
         x_train = x_train.astype('float32')
         x_test = x_test.astype('float32')
 
