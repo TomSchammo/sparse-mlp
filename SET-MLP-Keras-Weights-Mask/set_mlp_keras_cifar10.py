@@ -261,7 +261,8 @@ class SET_MLP_CIFAR10:
                 validation_data=(x_test, y_test),
                 initial_epoch=epoch - 1)
 
-            self.accuracies_per_epoch.append(historytemp.history['val_acc'][0])
+            self.accuracies_per_epoch.append(
+                historytemp.history['val_accuracy'][0])
 
             #ugly hack to avoid tensorflow memory increase for multiple fit_generator calls. Theano shall work more nicely this but it is outdated in general
             self.weightsEvolution()

@@ -147,7 +147,7 @@ class MLP_CIFAR10:
             validation_data=(x_test, y_test),
         )
 
-        self.accuracies_per_epoch = historytemp.history['val_acc']
+        self.accuracies_per_epoch = historytemp.history['val_accuracy']
 
     def read_data(self):
 
