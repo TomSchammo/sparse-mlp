@@ -51,14 +51,7 @@ from keras_contrib.layers.advanced_activations.srelu import SReLU
 from keras.datasets import cifar10
 from keras.utils import to_categorical
 
-
-class Constraint(object):
-
-    def __call__(self, w):
-        return w
-
-    def get_config(self):
-        return {}
+from keras.constraints import Constraint
 
 
 class MaskWeights(Constraint):
