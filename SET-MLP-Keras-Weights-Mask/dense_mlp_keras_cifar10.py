@@ -81,18 +81,33 @@ class MLP_CIFAR10:
         # create a dense MLP model for CIFAR10 with 3 hidden layers
         self.model = Sequential()
         self.model.add(Flatten(input_shape=(32, 32, 3)))
-        self.model.add(Dense(4000, name="dense_1", weights=self.w1))
-        self.model.add(SReLU(name="srelu1", weights=self.wSRelu1))
+        self.model.add(Dense(4000, name="dense_1"))
+        self.model.add(SReLU(name="srelu1"))
         self.model.add(Dropout(0.3))
-        self.model.add(Dense(1000, name="dense_2", weights=self.w2))
-        self.model.add(SReLU(name="srelu2", weights=self.wSRelu2))
+        self.model.add(Dense(1000, name="dense_2"))
+        self.model.add(SReLU(name="srelu2"))
         self.model.add(Dropout(0.3))
-        self.model.add(Dense(4000, name="dense_3", weights=self.w3))
-        self.model.add(SReLU(name="srelu3", weights=self.wSRelu3))
+        self.model.add(Dense(4000, name="dense_3"))
+        self.model.add(SReLU(name="srelu3"))
         self.model.add(Dropout(0.3))
-        self.model.add(Dense(self.num_classes, name="dense_4",
-                             weights=self.w4))
+        self.model.add(Dense(self.num_classes, name="dense_4"))
         self.model.add(Activation('softmax'))
+
+        self._restore_previous_weights()
+
+    def _restore_previous_weights(self):
+        # helper to load previously stored weights into freshly built layers
+        def maybe_set(name, weights):
+            if weights is not None:
+                self.model.get_layer(name).set_weights(weights)
+
+        maybe_set("dense_1", self.w1)
+        maybe_set("srelu1", self.wSRelu1)
+        maybe_set("dense_2", self.w2)
+        maybe_set("srelu2", self.wSRelu2)
+        maybe_set("dense_3", self.w3)
+        maybe_set("srelu3", self.wSRelu3)
+        maybe_set("dense_4", self.w4)
 
     def train(self):
 

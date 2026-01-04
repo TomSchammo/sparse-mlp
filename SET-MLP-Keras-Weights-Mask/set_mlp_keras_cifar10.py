@@ -138,16 +138,27 @@ class SET_MLP_CIFAR10:
         # create a SET-MLP model for CIFAR10 with 3 hidden layers
         self.model = Sequential()
         self.model.add(Flatten(input_shape=(32, 32, 3)))
-        self.model.add(Dense(4000, name="sparse_1",kernel_constraint=MaskWeights(self.wm1),weights=self.w1))
-        self.model.add(SReLU(name="srelu1",weights=self.wSRelu1))
+        self.model.add(
+            Dense(4000,
+                  name="sparse_1",
+                  kernel_constraint=MaskWeights(self.wm1)))
+        self.model.add(SReLU(name="srelu1"))
         self.model.add(Dropout(0.3))
-        self.model.add(Dense(1000, name="sparse_2",kernel_constraint=MaskWeights(self.wm2),weights=self.w2))
-        self.model.add(SReLU(name="srelu2",weights=self.wSRelu2))
+        self.model.add(
+            Dense(1000,
+                  name="sparse_2",
+                  kernel_constraint=MaskWeights(self.wm2)))
+        self.model.add(SReLU(name="srelu2"))
         self.model.add(Dropout(0.3))
-        self.model.add(Dense(4000, name="sparse_3",kernel_constraint=MaskWeights(self.wm3),weights=self.w3))
-        self.model.add(SReLU(name="srelu3",weights=self.wSRelu3))
+        self.model.add(
+            Dense(4000,
+                  name="sparse_3",
+                  kernel_constraint=MaskWeights(self.wm3)))
+        self.model.add(SReLU(name="srelu3"))
         self.model.add(Dropout(0.3))
-        self.model.add(Dense(self.num_classes, name="dense_4",weights=self.w4)) #please note that there is no need for a sparse output layer as the number of classes is much smaller than the number of input hidden neurons
+        self.model.add(
+            Dense(self.num_classes, name="dense_4")
+        )  #please note that there is no need for a sparse output layer as the number of classes is much smaller than the number of input hidden neurons
         self.model.add(Activation('softmax'))
 
         # If we already have weights from a previous training phase, reapply them
