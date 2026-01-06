@@ -48,7 +48,7 @@ from scipy.sparse import csc_matrix
 from scipy.sparse import lil_matrix
 from scipy.sparse import coo_matrix
 from scipy.sparse import dok_matrix
-import scipy.io as sio
+from tensorflow.keras.datasets import cifar10
 #the "sparseoperations" Cython library was tested in Ubuntu 16.04. Please note that you may encounter some "solvable" issues if you compile it in Windows.
 import sparseoperations
 import datetime
@@ -585,36 +585,28 @@ if __name__ == "__main__":
     # Comment this if you would like to use the full power of randomization. I use it to have repeatable results.
     np.random.seed(0)
 
-    # load data
-    mat = sio.loadmat('data/lung.mat') #lung dataset was downloaded from http://featureselection.asu.edu/
-    # As the lung dataset has just few hundred samples, and few thousands features, you will observe a high variance in the accuracy from one epoch to another.
-    # We chose this dataset to show how the SET-MLP model handles overfitting.
-    # To see a much more stable behaviour of the model please experiment with datasets with a higher amount of samples, e.g. COIL-100 can be a really nice one as it has 100 classes and also the last layer will be sparse.
-    X = mat['X']
+    # load CIFAR-10 data (60k color images, 32x32x3, 10 classes)
+    (X_train, Y_train_raw), (X_test, Y_test_raw) = cifar10.load_data()
+
+    # flatten images to vectors
+    X_train = X_train.reshape(X_train.shape[0], -1).astype("float64")
+    X_test = X_test.reshape(X_test.shape[0], -1).astype("float64")
+
     # one hot encoding
-    noClasses = np.max(mat['Y'])
-    Y=np.zeros((mat['Y'].shape[0],noClasses))
-    for i in range(Y.shape[0]):
-        Y[i,mat['Y'][i]-1]=1
+    noClasses = 10
+    Y_train = np.eye(noClasses)[Y_train_raw.reshape(-1)]
+    Y_test = np.eye(noClasses)[Y_test_raw.reshape(-1)]
 
-    #split data in training and testing
-    indices=np.arange(X.shape[0])
-    np.random.shuffle(indices)
-    X_train=X[indices[0:int(X.shape[0]*2/3)]]
-    Y_train=Y[indices[0:int(X.shape[0]*2/3)]]
-    X_test=X[indices[int(X.shape[0]*2/3):]]
-    Y_test=Y[indices[int(X.shape[0]*2/3):]]
-
-    #normalize data to have 0 mean and unit variance
-    X_train = X_train.astype('float64')
-    X_test = X_test.astype('float64')
+    # normalize data to have 0 mean and unit variance
     xTrainMean = np.mean(X_train, axis=0)
-    xTtrainStd = np.std(X_train, axis=0)
-    X_train = (X_train - xTrainMean) / (xTtrainStd+0.0001)
-    X_test = (X_test - xTrainMean) / (xTtrainStd+0.0001)
+    xTrainStd = np.std(X_train, axis=0)
+    X_train = (X_train - xTrainMean) / (xTrainStd + 0.0001)
+    X_test = (X_test - xTrainMean) / (xTrainStd + 0.0001)
 
     # create SET-MLP
-    set_mlp = SET_MLP((X_train.shape[1], 3000, 3000, 3000, Y_train.shape[1]), (Relu, Relu, Relu, Sigmoid), epsilon=20)
+    set_mlp = SET_MLP((X_train.shape[1], 3000, 3000, 3000, Y_train.shape[1]),
+                      (Relu, Relu, Relu, Sigmoid),
+                      epsilon=20)
 
     # train SET-MLP
     set_mlp.fit(X_train,
